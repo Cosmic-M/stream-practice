@@ -9,6 +9,8 @@ import model.Customer;
 import model.Order;
 import model.Product;
 
+import static java.util.stream.Collectors.summarizingDouble;
+
 public class Main {
     private static DataGenerator data;
     /*
@@ -53,8 +55,8 @@ public class Main {
         System.out.println("==============================================");
         System.out.println("7 -> list of orders which were ordered on 15-Mar-2021");
         System.out.println("ALL ORDERS ON on 15-Mar-2021:");
-        List<Order> products = getAllOrders(LocalDate.of(2021, Month.MARCH, 15));
-        System.out.println("Quantity of orders:" + products.size());
+        List<Product> products = getAllOrders(LocalDate.of(2021, Month.MARCH, 15));
+        System.out.println("products = " + products.toString());
         System.out.println("==============================================");
         System.out.println("8 -> total sum of all orders placed in Feb 2021");
         System.out.println("Sum of all orders in February: " + getTotalSum(
@@ -71,7 +73,8 @@ public class Main {
         System.out.println("==============================================");
         System.out.println("10 -> collection of statistic figures (i.e. sum, average, max, min, count) for all products of category Books");
         String category = "Books";
-        getStatistic(category).forEach(System.out::println);
+        DoubleSummaryStatistics statistics = getStatistic(category);
+        System.out.println(statistics);
         System.out.println("==============================================");
         System.out.println("11 -> DataMap:");
         HashMap<Long, Integer> dataMap = getDataMap();
@@ -161,11 +164,13 @@ public class Main {
     }
 
     //7. Get a list of orders which were ordered on 15-Mar-2021, log the order records to the console and then return its product list
-    private static List<Order> getAllOrders(LocalDate date) {
+    private static List<Product> getAllOrders(LocalDate date) {
         return data.getOrders().stream()
                 .filter(i -> i.getOrderDate().isEqual(date))
                 .peek(System.out::println)
-                .toList();
+                .map(Order::getProducts)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
     //8. Calculate total sum of all orders placed in Feb 2021
@@ -184,43 +189,16 @@ public class Main {
         return data.getOrders().stream()
                 .filter(i -> i.getOrderDate().isEqual(date))
                 .map(Order::getProducts)
-                .flatMap(Collection::stream)
-                .map(Product::getPrice)
+                .map(i -> i.stream().map(Product::getPrice).mapToDouble(u -> u).sum())
                 .mapToDouble(i -> i)
                 .average();
     }
 
      //10. Obtain a collection of statistic figures (i.e. sum, average, max, min, count) for all products of category "Books"
-    private static List<? extends Number> getStatistic(String category) {
-        double sumPrice =  data.getProducts().stream()
-                .filter(i -> i.getCategory().equals(category))
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .sum();
-        double averagePrice = data.getProducts().stream()
-                .filter(i -> i.getCategory().equals(category))
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .average()
-                .getAsDouble();
-        double maxPrice = data.getProducts().stream()
-                .filter(i -> i.getCategory().equals(category))
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .max()
-                .getAsDouble();
-        double minPrice = data.getProducts().stream()
-                .filter(i -> i.getCategory().equals(category))
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .min()
-                .getAsDouble();
-        long count = data.getProducts().stream()
-                .filter(i -> i.getCategory().equals(category))
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .count();
-        return Stream.of(sumPrice, averagePrice, maxPrice, minPrice, count).toList();
+    private static DoubleSummaryStatistics getStatistic(String category) {
+        return data.getProducts().stream()
+                .filter(p -> p.getCategory().equals("Books"))
+        .collect(summarizingDouble(Product::getPrice));
     }
 
         //11. Obtain a data map with order id and order's product count
