@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.Month;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import model.Customer;
 import model.Order;
 import model.Product;
@@ -70,7 +72,7 @@ public class Main {
         System.out.println("==============================================");
         System.out.println("10 -> collection of statistic figures (i.e. sum, average, max, min, count) for all products of category Books");
         String category = "Books";
-        System.out.println(getStatistic(category));
+        getStatistic(category).forEach(System.out::println);
         System.out.println("==============================================");
         System.out.println("11 -> DataMap:");
         HashMap<Long, Integer> dataMap = getDataMap();
@@ -102,6 +104,7 @@ public class Main {
 
     }
 
+    //1. Obtain a list of products belongs to category "Books" with price > 100
     private static List<Product> getProducts(String category, int price) {
         return data.getProducts().stream()
                 .filter(i -> i.getCategory().equals(category))
@@ -109,6 +112,7 @@ public class Main {
                 .toList();
     }
 
+    //2. Obtain a list of orders with products belong to category "Baby" only
     private static List<Order> getOrders(String category) {
         return data.getOrders().stream()
                 .filter(i -> ifBelongCategory(i, category))
@@ -121,6 +125,7 @@ public class Main {
                 .allMatch(i -> i.equals(category));
     }
 
+     //3. Obtain a list of products with category = "Toys" and then apply 10% discount
     private static List<Product> getProducts(double discount, String category) {
         return data.getProducts().stream()
                 .filter(i -> i.getCategory().equals(category))
@@ -128,6 +133,7 @@ public class Main {
                 .toList();
     }
 
+    //4. Obtain a list of products ordered by customer of tier 2 between 01-Feb-2021 and 01-Apr-2021
     private static List<Product> getProducts(Long customerId, LocalDate from, LocalDate to) {
         return data.getOrders().stream()
                 .filter(i -> Objects.equals(i.getCustomer().getId(), customerId))
@@ -137,6 +143,7 @@ public class Main {
                 .toList();
     }
 
+    //5. Get the cheapest products of "Books" category
     private static Product getCheapestProduct(String category) {
         Comparator<Product> costComparator = Comparator.comparing(Product::getPrice);
         return data.getProducts().stream()
@@ -145,6 +152,7 @@ public class Main {
                 .get();
     }
 
+    //6. Get the 3 most recent placed order
     private static List<Order> getRecentOrders(int quantity) {
         Comparator<Order> dateComparator = Comparator.comparing(Order::getOrderDate).reversed();
         return data.getOrders().stream()
@@ -153,6 +161,7 @@ public class Main {
                 .toList();
     }
 
+    //7. Get a list of orders which were ordered on 15-Mar-2021, log the order records to the console and then return its product list
     private static List<Order> getAllOrders(LocalDate date) {
         return data.getOrders().stream()
                 .filter(i -> i.getOrderDate().isEqual(date))
@@ -160,6 +169,7 @@ public class Main {
                 .toList();
     }
 
+    //8. Calculate total sum of all orders placed in Feb 2021
     private static double getTotalSum(LocalDate from, LocalDate to) {
         return data.getOrders().stream()
                 .filter(i -> i.getOrderDate().isAfter(from) && i.getOrderDate().isBefore(to))
@@ -170,7 +180,19 @@ public class Main {
                 .sum();
     }
 
-    private static String getStatistic(String category) {
+    //9. Calculate order average payment placed on 15-Mar-2021
+    private static OptionalDouble gertOrderAveragePayment(LocalDate date) {
+        return data.getOrders().stream()
+                .filter(i -> i.getOrderDate().isEqual(date))
+                .map(Order::getProducts)
+                .flatMap(Collection::stream)
+                .map(Product::getPrice)
+                .mapToDouble(i -> i)
+                .average();
+    }
+
+     //10. Obtain a collection of statistic figures (i.e. sum, average, max, min, count) for all products of category "Books"
+    private static List<? extends Number> getStatistic(String category) {
         double sumPrice =  data.getProducts().stream()
                 .filter(i -> i.getCategory().equals(category))
                 .map(Product::getPrice)
@@ -199,25 +221,23 @@ public class Main {
                 .map(Product::getPrice)
                 .mapToDouble(i -> i)
                 .count();
-        return "Category product - " + category + " {"
-                + "sum = " + sumPrice
-                + ", average = " + averagePrice
-                + ", max = " + maxPrice
-                + ", min = " + minPrice
-                + ", count = " + count + "}";
+        return Stream.of(sumPrice, averagePrice, maxPrice, minPrice, count).toList();
     }
 
+        //11. Obtain a data map with order id and order's product count
     private static HashMap<Long, Integer> getDataMap() {
         HashMap<Long, Integer> result = new HashMap<>();
         data.getOrders().forEach(entry -> result.put(entry.getId(), entry.getProducts().size()));
         return result;
     }
 
+    //12. Produce a data map with order records grouped by customer
     private static Map<Customer, List<Order>> getCustomOrders() {
         return data.getOrders().stream()
                 .collect(Collectors.groupingBy(Order::getCustomer, Collectors.toList()));
     }
 
+    //13. Produce a data map with order record and product total sum
     private static Map<Order, Double> getTotalSumOrders() {
         Map<Order, Double> totalSumOrders = new HashMap<>();
         data.getOrders()
@@ -227,22 +247,15 @@ public class Main {
                         .sum()));
         return totalSumOrders;
     }
-    private static OptionalDouble gertOrderAveragePayment(LocalDate date) {
-        return data.getOrders().stream()
-                .filter(i -> i.getOrderDate().isEqual(date))
-                .map(Order::getProducts)
-                .flatMap(Collection::stream)
-                .map(Product::getPrice)
-                .mapToDouble(i -> i)
-                .average();
-    }
 
+    //14. Obtain a data map with list of product name by category
     private static Map<String, List<String>> getCategoryProductsMap() {
         return data.getProducts().stream()
                 .collect(Collectors.groupingBy(Product::getCategory,
                         Collectors.mapping(Product::getName, Collectors.toList())));
     }
 
+    //15. Get the most expensive product by category
     private static Product getMostExpensiveProduct(String category) {
         Comparator<Product> priceProductComparator = Comparator.comparing(Product::getPrice).reversed();
         return data.getProducts().stream()
